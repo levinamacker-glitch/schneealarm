@@ -1,4 +1,4 @@
-# Schneealarm
+# Schneealarm-wenduweischduweisch
 
 Prüft alle 3 Stunden die Neuschnee-Prognose für deine Skigebiete. Sind innert 24 Stunden mindestens 50 cm Neuschnee angesagt, bekommen du und dein Kollege eine Push-Nachricht aufs iPhone.
 
