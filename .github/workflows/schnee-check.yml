@@ -1,0 +1,44 @@
+name: Schnee-Check
+
+on:
+  schedule:
+    # Alle 3 Stunden zwischen etwa 6 und 22 Uhr Schweizer Zeit (GitHub rechnet in UTC)
+    - cron: "17 5-20/3 * * *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Test-Nachricht an alle Handys senden"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: schnee-check
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Prognose prüfen
+        run: node check-snow.js
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          TEST_MODE: ${{ inputs.test }}
+
+      - name: Gesendete Alarme merken
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Alarm-Status aktualisiert"
+            git push
+          fi
