@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schneealarm</title>
+<meta name="description" content="Neuschnee-Prognose für deine Skigebiete">
+<meta name="theme-color" content="#f3f6f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c1626" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Schneealarm">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --grund: #f3f6f9;
+    --tinte: #13243a;
+    --grau: #56677b;
+    --linie: #d6dfe8;
+    --rot: #d4291f;
+    --eis: #b4cce2;
+    --nacht: #13243a;
+    --nacht-tinte: #eef4fa;
+    --stab-weiss: #f6f9fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --grund: #0c1626;
+      --tinte: #e6edf5;
+      --grau: #95a5b8;
+      --linie: #22334a;
+      --rot: #ff5a4e;
+      --eis: #4a6f95;
+      --nacht: #182c47;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--grund);
+    color: var(--tinte);
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  main {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding:
+      calc(env(safe-area-inset-top) + 18px)
+      max(16px, env(safe-area-inset-right))
+      calc(env(safe-area-inset-bottom) + 36px)
+      max(16px, env(safe-area-inset-left));
+  }
+
+  .kopf { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; margin-bottom: 14px; }
+  h1 { margin: 0; font-size: 1.25rem; font-weight: 800; font-stretch: 115%; letter-spacing: -0.01em; }
+  .regel { margin: 0; color: var(--grau); font-size: .875rem; }
+
+  /* Schneepegel: rot-weisser Stab, 10 Felder à 10 cm, Schnee wächst von unten */
+  .pegel { position: relative; height: var(--hoehe); width: var(--breite); align-self: end; justify-self: center; }
+  .pegel-stab {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(to top, var(--rot) 0 10%, var(--stab-weiss) 10% 20%);
+    border-radius: 2px 2px 0 0;
+  }
+  .pegel-schnee {
+    position: absolute; bottom: 0;
+    left: calc(var(--fluegel) * -1); right: calc(var(--fluegel) * -1);
+    height: calc(var(--cm, 0) * 1%);
+    background: var(--schnee);
+    border-radius: 50% 50% 0 0 / var(--rundung) var(--rundung) 0 0;
+    transition: height 1.4s cubic-bezier(.2, .7, .2, 1);
+  }
+  .pegel-marke {
+    position: absolute; left: var(--marke-links); right: -6px;
+    bottom: calc(var(--schwelle, 50) * 1%);
+    border-top: 2px solid var(--marke);
+  }
+
+  .urteil {
+    --hoehe: 232px;
+    position: relative; isolation: isolate;
+    display: grid; grid-template-columns: 92px 1fr; column-gap: 14px;
+    padding: 22px 20px 0 10px;
+    background: var(--nacht); color: var(--nacht-tinte);
+    border-radius: 22px; overflow: hidden;
+  }
+  .urteil .pegel { --breite: 20px; --marke-links: -12px; --marke: var(--nacht-tinte); margin-top: 6px; }
+  .urteil .pegel-marke { z-index: 3; box-shadow: 0 1px 0 var(--nacht), 0 -1px 0 var(--nacht); }
+  /* Schneedecke über die ganze Breite, gemessen am Pegel */
+  .schneedecke {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
+    height: calc(var(--cm, 0) * var(--hoehe) / 100);
+    background: linear-gradient(rgb(238 244 250 / .30), rgb(238 244 250 / .14));
+    border-top: 1px solid rgb(255 255 255 / .75);
+    transition: height 1.4s cubic-bezier(.2, .7, .2, 1);
+  }
+  .schneedecke[style*="--cm: 0"], .schneedecke:not([style]) { border-top-color: transparent; }
+  .urteil .pegel-marke span {
+    position: absolute; right: calc(100% + 4px); top: -.45em;
+    font-size: .8125rem; font-weight: 700; line-height: 1;
+    text-shadow: 0 0 3px var(--nacht), 0 0 3px var(--nacht);
+  }
+  .urteil-text { align-self: start; padding-bottom: 26px; position: relative; z-index: 2; }
+  .urteil-text h2 {
+    margin: 0 0 12px;
+    font-size: clamp(2.05rem, 8.6vw, 2.9rem); font-weight: 800; font-stretch: 70%;
+    line-height: 1.02; letter-spacing: -0.005em; text-wrap: balance;
+  }
+  .urteil-text p { margin: 0; font-size: .9375rem; color: color-mix(in srgb, var(--nacht-tinte) 74%, transparent); text-wrap: pretty; }
+
+  .liste-kopf { margin: 30px 0 4px; }
+  .liste-kopf h2 { margin: 0; font-size: 1.125rem; font-weight: 750; font-stretch: 110%; }
+  .liste-kopf p { margin: 2px 0 0; color: var(--grau); font-size: .875rem; max-width: 60ch; }
+
+  .gebiete { list-style: none; margin: 0; padding: 0; }
+  .gebiet { border-bottom: 1px solid var(--linie); }
+  .gebiet-knopf {
+    display: grid; grid-template-columns: 22px 1fr auto; gap: 14px; align-items: center;
+    width: 100%; padding: 14px 2px; margin: 0;
+    font: inherit; color: inherit; text-align: left;
+    background: none; border: 0; cursor: pointer;
+  }
+  .gebiet-knopf:focus-visible { outline: 2px solid var(--rot); outline-offset: 2px; border-radius: 6px; }
+  .gebiet .pegel {
+    --hoehe: 50px; --breite: 8px; --fluegel: 3px; --rundung: 1px; --marke-links: -6px;
+    --schnee: var(--eis); --marke: var(--tinte);
+  }
+  .gebiet .pegel-stab { box-shadow: 0 0 0 1px var(--linie); }
+  .gebiet .pegel-marke { border-top-width: 1.5px; }
+  .gebiet .pegel-marke span { display: none; }
+  .gebiet-name { display: block; font-weight: 650; line-height: 1.25; }
+  .gebiet-zeit { display: block; font-size: .875rem; color: var(--grau); }
+  .gebiet-cm { font-size: 2.125rem; font-weight: 800; font-stretch: 68%; line-height: 1; font-variant-numeric: tabular-nums; }
+  .gebiet-cm small { font-size: .9rem; font-weight: 600; font-stretch: 100%; color: var(--grau); }
+  .alarm .gebiet-cm, .alarm .gebiet-zeit { color: var(--rot); }
+  .alarm .gebiet-zeit { font-weight: 600; }
+
+  .gebiet-mehr { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows .3s ease, visibility .3s; }
+  .gebiet-mehr > div { overflow: hidden; }
+  .gebiet-knopf[aria-expanded="true"] + .gebiet-mehr { grid-template-rows: 1fr; visibility: visible; }
+  .mehr-titel { margin: 0 0 10px 36px; font-size: .875rem; color: var(--grau); }
+  .tage { list-style: none; margin: 0 0 16px 36px; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; }
+  .tag { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tag-cm { font-size: .8125rem; font-weight: 650; min-height: 1.2em; font-variant-numeric: tabular-nums; }
+  .tag-balken { width: 100%; max-width: 30px; height: max(2px, calc(var(--anteil) * 72px)); background: var(--eis); border-radius: 3px 3px 0 0; }
+  .tag.viel .tag-balken { background: var(--rot); }
+  .tag-name { font-size: .75rem; color: var(--grau); white-space: nowrap; }
+
+  footer { margin-top: 26px; }
+  .neu {
+    font: inherit; font-size: .9375rem; font-weight: 650; color: var(--tinte);
+    background: none; border: 1.5px solid var(--tinte); border-radius: 999px;
+    padding: 9px 18px; cursor: pointer;
+  }
+  .neu:disabled { opacity: .5; cursor: default; }
+  .neu:focus-visible { outline: 2px solid var(--rot); outline-offset: 3px; }
+  .hinweis { margin: 14px 0 0; color: var(--grau); font-size: .8125rem; max-width: 60ch; }
+  .hinweis a { color: inherit; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .schneedecke, .gebiet-mehr { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="kopf">
+    <h1>Schneealarm</h1>
+    <p class="regel">Alarm ab <span id="schwelle">50</span> cm Neuschnee in 24 Stunden</p>
+  </header>
+
+  <section class="urteil" id="urteil" aria-live="polite">
+    <div class="pegel" id="pegel-gross" aria-hidden="true">
+      <div class="pegel-stab"></div>
+      <div class="pegel-marke"><span></span></div>
+    </div>
+    <div class="schneedecke" id="schneedecke" aria-hidden="true"></div>
+    <div class="urteil-text">
+      <h2 id="titel">Prognose wird geladen</h2>
+      <p id="detail"></p>
+    </div>
+  </section>
+
+  <section>
+    <div class="liste-kopf">
+      <h2>Deine Skigebiete</h2>
+      <p>Grösste Neuschneemenge in 24 Stunden während der nächsten 3 Tage. Tippe auf ein Skigebiet für die Tagesprognose.</p>
+    </div>
+    <ul class="gebiete" id="gebiete"></ul>
+  </section>
+
+  <footer>
+    <button class="neu" id="neu" type="button">Prognose aktualisieren</button>
+    <p class="hinweis"><span id="stand"></span> Die Push-Nachrichten kommen über die App ntfy, auch wenn diese Seite geschlossen ist. Wetterdaten von <a href="https://open-meteo.com/">Open-Meteo</a>.</p>
+  </footer>
+</main>
+
+<script type="module">
+  import { ladePrognosen, zeitraum, tagName } from "./schnee.js";
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (text) => String(text).replace(/[&<>"]/g, (z) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[z]);
+  const uhrzeit = new Intl.DateTimeFormat("de-CH", { hour: "2-digit", minute: "2-digit" });
+  let config;
+
+  async function laden() {
+    const knopf = $("neu");
+    knopf.disabled = true;
+    knopf.textContent = "Lädt …";
+    try {
+      config ??= await fetch("skigebiete.json", { cache: "no-store" })
+        .then((r) => r.json())
+        .catch(() => { throw new Fehler("skigebiete.json ist fehlerhaft", "Prüfe die Datei auf Tippfehler, zum Beispiel ein fehlendes Komma oder Anführungszeichen."); });
+      if (!config.skigebiete?.length) {
+        throw new Fehler("Noch keine Skigebiete", "Trage in skigebiete.json mindestens ein Skigebiet ein.");
+      }
+      $("schwelle").textContent = config.schwelle_cm;
+      const prognosen = await ladePrognosen(config.skigebiete, 7);
+      prognosen.sort((a, b) => b.max.cm - a.max.cm);
+      zeigeUrteil(prognosen);
+      zeigeListe(prognosen);
+      $("stand").textContent = `Stand ${uhrzeit.format(new Date())} Uhr.`;
+    } catch (fehler) {
+      console.error(fehler);
+      $("titel").textContent = fehler.titel ?? "Prognose nicht geladen";
+      $("detail").textContent = fehler.hinweis ?? "Prüfe die Internetverbindung und tippe auf «Prognose aktualisieren».";
+    } finally {
+      knopf.disabled = false;
+      knopf.textContent = "Prognose aktualisieren";
+    }
+  }
+
+  class Fehler extends Error {
+    constructor(titel, hinweis) {
+      super(titel);
+      this.titel = titel;
+      this.hinweis = hinweis;
+    }
+  }
+
+  function zeigeUrteil(prognosen) {
+    const alarm = prognosen.filter((p) => p.max.cm >= config.schwelle_cm);
+    const [spitze] = prognosen;
+    const wann = spitze.max.von ? zeitraum(spitze.max.von, spitze.max.bis) : "";
+    const amMeisten = `Am meisten in ${spitze.gebiet.name}: ${spitze.max.cm} cm, ${wann}`;
+    const [titel, detail] =
+      alarm.length === 1 ? [`${spitze.gebiet.name} bekommt ${spitze.max.cm} cm Neuschnee`, spitze.gebiet.hoehe ? `${wann}, gerechnet auf ${spitze.gebiet.hoehe} m` : wann]
+      : alarm.length > 1 ? [`Powder in ${alarm.length} Skigebieten`, amMeisten]
+      : spitze.max.cm > 0 ? ["Noch kein Powder", amMeisten]
+      : ["Kein Neuschnee in Sicht", "In den nächsten 3 Tagen bleibt es in allen Skigebieten trocken."];
+    $("titel").textContent = titel;
+    $("detail").textContent = detail;
+
+    const pegel = $("pegel-gross");
+    pegel.style.setProperty("--schwelle", config.schwelle_cm);
+    pegel.querySelector(".pegel-marke span").textContent = config.schwelle_cm;
+    $("schneedecke").style.setProperty("--cm", Math.min(spitze.max.cm, 100));
+  }
+
+  function zeigeListe(prognosen) {
+    $("gebiete").innerHTML = prognosen.map((p, i) => {
+      const alarm = p.max.cm >= config.schwelle_cm;
+      const zeit = p.max.cm === 0 ? "Kein Neuschnee in Sicht" : `${alarm ? "Alarm: " : ""}${zeitraum(p.max.von, p.max.bis)}`;
+      const groesster = Math.max(config.schwelle_cm, ...p.tage.map((t) => t.cm));
+      const tage = p.tage.map((t, k) => `
+        <li class="tag${t.cm >= config.schwelle_cm ? " viel" : ""}">
+          <span class="tag-cm">${t.cm >= 1 ? Math.round(t.cm) : ""}</span>
+          <span class="tag-balken" style="--anteil:${t.cm / groesster}"></span>
+          <span class="tag-name">${k === 0 ? "Heute" : tagName(t.zeit)}</span>
+        </li>`).join("");
+      return `
+        <li class="gebiet${alarm ? " alarm" : ""}">
+          <button class="gebiet-knopf" type="button" aria-expanded="false" aria-controls="tage-${i}">
+            <span class="pegel" style="--cm:${Math.min(p.max.cm, 100)}; --schwelle:${config.schwelle_cm}" aria-hidden="true">
+              <span class="pegel-stab"></span><span class="pegel-schnee"></span><span class="pegel-marke"></span>
+            </span>
+            <span><span class="gebiet-name">${esc(p.gebiet.name)}</span><span class="gebiet-zeit">${zeit}</span></span>
+            <span class="gebiet-cm">${p.max.cm}<small> cm</small></span>
+          </button>
+          <div class="gebiet-mehr" id="tage-${i}">
+            <div>
+              <p class="mehr-titel">Neuschnee pro Tag${p.gebiet.hoehe ? ` auf ${p.gebiet.hoehe} m` : ""}, in cm</p>
+              <ol class="tage">${tage}</ol>
+            </div>
+          </div>
+        </li>`;
+    }).join("");
+  }
+
+  $("gebiete").addEventListener("click", (e) => {
+    const knopf = e.target.closest(".gebiet-knopf");
+    if (knopf) knopf.setAttribute("aria-expanded", knopf.getAttribute("aria-expanded") !== "true");
+  });
+  $("neu").addEventListener("click", laden);
+  laden();
+</script>
+</body>
+</html>

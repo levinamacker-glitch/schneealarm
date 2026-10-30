@@ -1,0 +1,13 @@
+{
+  "schwelle_cm": 50,
+  "skigebiete": [
+    { "name": "Toggenburg", "lat": 47.165, "lon": 9.315, "hoehe": 1800 },
+    { "name": "Flumserberg", "lat": 47.075, "lon": 9.275, "hoehe": 1800 },
+    { "name": "Pizol", "lat": 46.985, "lon": 9.44, "hoehe": 1900 },
+    { "name": "Laax", "lat": 46.84, "lon": 9.225, "hoehe": 2200 },
+    { "name": "Davos Parsenn", "lat": 46.83, "lon": 9.815, "hoehe": 2400 },
+    { "name": "Arosa Lenzerheide", "lat": 46.75, "lon": 9.62, "hoehe": 2300 },
+    { "name": "Andermatt", "lat": 46.61, "lon": 8.61, "hoehe": 2300 },
+    { "name": "Engelberg Titlis", "lat": 46.79, "lon": 8.4, "hoehe": 1900 }
+  ]
+}
