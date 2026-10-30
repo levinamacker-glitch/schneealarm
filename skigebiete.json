@@ -1,4 +1,5 @@
 {
+  "lohnenswert_cm": 40,
   "schwelle_cm": 50,
   "skigebiete": [
     { "name": "Toggenburg", "lat": 47.165, "lon": 9.315, "hoehe": 1800 },

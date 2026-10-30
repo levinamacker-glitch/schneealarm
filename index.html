@@ -143,8 +143,8 @@
   .gebiet-zeit { display: block; font-size: .875rem; color: var(--grau); }
   .gebiet-cm { font-size: 2.125rem; font-weight: 800; font-stretch: 68%; line-height: 1; font-variant-numeric: tabular-nums; }
   .gebiet-cm small { font-size: .9rem; font-weight: 600; font-stretch: 100%; color: var(--grau); }
-  .alarm .gebiet-cm, .alarm .gebiet-zeit { color: var(--rot); }
-  .alarm .gebiet-zeit { font-weight: 600; }
+  .alarm .gebiet-cm, .alarm .gebiet-zeit, .lohnenswert .gebiet-zeit { color: var(--rot); }
+  .alarm .gebiet-zeit, .lohnenswert .gebiet-zeit { font-weight: 600; }
 
   .gebiet-mehr { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows .3s ease, visibility .3s; }
   .gebiet-mehr > div { overflow: hidden; }
@@ -177,7 +177,7 @@
 <main>
   <header class="kopf">
     <h1>Schneealarm</h1>
-    <p class="regel">Alarm ab <span id="schwelle">50</span> cm Neuschnee in 24 Stunden</p>
+    <p class="regel" id="regel">Alarm ab 50 cm Neuschnee in 24 Stunden</p>
   </header>
 
   <section class="urteil" id="urteil" aria-live="polite">
@@ -207,7 +207,7 @@
 </main>
 
 <script type="module">
-  import { ladePrognosen, zeitraum, tagName } from "./schnee.js";
+  import { ladePrognosen, stufe, zeitraum, tagName } from "./schnee.js";
 
   const $ = (id) => document.getElementById(id);
   const esc = (text) => String(text).replace(/[&<>"]/g, (z) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[z]);
@@ -225,7 +225,9 @@
       if (!config.skigebiete?.length) {
         throw new Fehler("Noch keine Skigebiete", "Trage in skigebiete.json mindestens ein Skigebiet ein.");
       }
-      $("schwelle").textContent = config.schwelle_cm;
+      $("regel").textContent = config.lohnenswert_cm < config.schwelle_cm
+        ? `Lohnenswert ab ${config.lohnenswert_cm} cm, Alarm ab ${config.schwelle_cm} cm in 24 Stunden`
+        : `Alarm ab ${config.schwelle_cm} cm Neuschnee in 24 Stunden`;
       const prognosen = await ladePrognosen(config.skigebiete, 7);
       prognosen.sort((a, b) => b.max.cm - a.max.cm);
       zeigeUrteil(prognosen);
@@ -250,13 +252,16 @@
   }
 
   function zeigeUrteil(prognosen) {
-    const alarm = prognosen.filter((p) => p.max.cm >= config.schwelle_cm);
+    const alarm = prognosen.filter((p) => stufe(p.max.cm, config) === "alarm");
+    const lohnenswert = prognosen.filter((p) => stufe(p.max.cm, config) === "lohnenswert");
     const [spitze] = prognosen;
     const wann = spitze.max.von ? zeitraum(spitze.max.von, spitze.max.bis) : "";
     const amMeisten = `Am meisten in ${spitze.gebiet.name}: ${spitze.max.cm} cm, ${wann}`;
     const [titel, detail] =
       alarm.length === 1 ? [`${spitze.gebiet.name} bekommt ${spitze.max.cm} cm Neuschnee`, spitze.gebiet.hoehe ? `${wann}, gerechnet auf ${spitze.gebiet.hoehe} m` : wann]
       : alarm.length > 1 ? [`Powder in ${alarm.length} Skigebieten`, amMeisten]
+      : lohnenswert.length === 1 ? [`${spitze.gebiet.name} lohnt sich`, `${spitze.max.cm} cm Neuschnee, ${wann}. Nicht perfekt, aber trotzdem lohnenswert.`]
+      : lohnenswert.length > 1 ? [`Lohnenswert in ${lohnenswert.length} Skigebieten`, `${amMeisten}. Nicht perfekt, aber trotzdem lohnenswert.`]
       : spitze.max.cm > 0 ? ["Noch kein Powder", amMeisten]
       : ["Kein Neuschnee in Sicht", "In den nächsten 3 Tagen bleibt es in allen Skigebieten trocken."];
     $("titel").textContent = titel;
@@ -270,8 +275,9 @@
 
   function zeigeListe(prognosen) {
     $("gebiete").innerHTML = prognosen.map((p, i) => {
-      const alarm = p.max.cm >= config.schwelle_cm;
-      const zeit = p.max.cm === 0 ? "Kein Neuschnee in Sicht" : `${alarm ? "Alarm: " : ""}${zeitraum(p.max.von, p.max.bis)}`;
+      const s = stufe(p.max.cm, config);
+      const vorne = { alarm: "Alarm: ", lohnenswert: "Lohnenswert: " }[s] ?? "";
+      const zeit = p.max.cm === 0 ? "Kein Neuschnee in Sicht" : `${vorne}${zeitraum(p.max.von, p.max.bis)}`;
       const groesster = Math.max(config.schwelle_cm, ...p.tage.map((t) => t.cm));
       const tage = p.tage.map((t, k) => `
         <li class="tag${t.cm >= config.schwelle_cm ? " viel" : ""}">
@@ -280,7 +286,7 @@
           <span class="tag-name">${k === 0 ? "Heute" : tagName(t.zeit)}</span>
         </li>`).join("");
       return `
-        <li class="gebiet${alarm ? " alarm" : ""}">
+        <li class="gebiet${s ? ` ${s}` : ""}">
           <button class="gebiet-knopf" type="button" aria-expanded="false" aria-controls="tage-${i}">
             <span class="pegel" style="--cm:${Math.min(p.max.cm, 100)}; --schwelle:${config.schwelle_cm}" aria-hidden="true">
               <span class="pegel-stab"></span><span class="pegel-schnee"></span><span class="pegel-marke"></span>

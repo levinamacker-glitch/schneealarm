@@ -1,6 +1,9 @@
-# Schneealarm-wenduweischduweisch
+# Schneealarm
 
-Prüft alle 3 Stunden die Neuschnee-Prognose für deine Skigebiete. Sind innert 24 Stunden mindestens 50 cm Neuschnee angesagt, bekommen du und dein Kollege eine Push-Nachricht aufs iPhone.
+Prüft alle 3 Stunden die Neuschnee-Prognose für deine Skigebiete. Du und dein Kollege bekommen eine Push-Nachricht aufs iPhone:
+
+- **ab 40 cm** Neuschnee innert 24 Stunden: «Lohnenswert», nicht perfekt, aber trotzdem lohnenswert.
+- **ab 50 cm** Neuschnee innert 24 Stunden: Alarm.
 
 So funktioniert es:
 
@@ -23,7 +26,7 @@ Du brauchst einen PC mit Browser und einen geheimen Kanalnamen, zum Beispiel `sc
 7. **Testen:** Im Repository auf **Actions** › **Schnee-Check** › **Run workflow**. «Test-Nachricht an alle Handys senden» ist angekreuzt › **Run workflow**. Nach etwa 30 Sekunden sollten beide iPhones die Nachricht «Schneealarm funktioniert» anzeigen.
 8. **Web-App aufs iPhone:** Die Adresse aus Schritt 5 in **Safari** öffnen › Teilen-Symbol › **Zum Home-Bildschirm**.
 
-## Skigebiete und Grenze ändern
+## Skigebiete und Grenzen ändern
 
 Öffne `skigebiete.json` im Repository und tippe auf den Stift zum Bearbeiten.
 
@@ -33,6 +36,7 @@ Du brauchst einen PC mit Browser und einen geheimen Kanalnamen, zum Beispiel `sc
 
 - `lat` / `lon`: Koordinaten. In Google Maps lange auf die Karte drücken (am PC: Rechtsklick), dann werden sie angezeigt.
 - `hoehe`: Höhe in Metern, für die die Prognose gerechnet wird. Am besten die mittlere Pistenhöhe.
+- `lohnenswert_cm`: ab wie vielen Zentimetern Neuschnee in 24 Stunden die Meldung «Lohnenswert» kommt. Löschst du die Zeile, kommen nur noch Alarme.
 - `schwelle_cm`: ab wie vielen Zentimetern Neuschnee in 24 Stunden ein Alarm kommt.
 
 Achte auf Kommas zwischen den Einträgen. Nach dem Speichern gilt die Änderung ab dem nächsten Check.
@@ -40,7 +44,7 @@ Achte auf Kommas zwischen den Einträgen. Nach dem Speichern gilt die Änderung 
 ## Gut zu wissen
 
 - Geprüft wird alle 3 Stunden zwischen etwa 6 und 22 Uhr, also nicht nachts. GitHub startet die Checks manchmal bis zu einer Stunde später.
-- Derselbe Alarm kommt höchstens alle 48 Stunden, ausser die Prognose steigt um mindestens 20 cm.
+- Dieselbe Meldung kommt höchstens alle 48 Stunden, ausser die Prognose steigt um mindestens 20 cm. Steigt ein Skigebiet nach «Lohnenswert» auf 50 cm, kommt der Alarm sofort.
 - Gemeldete Alarme merkt sich der Check in `state.json`. Diese Datei nicht von Hand ändern.
 - GitHub pausiert automatische Checks in öffentlichen Repositories nach 60 Tagen ohne Aktivität (meist im Sommer) und schickt vorher eine E-Mail. Im Herbst unter **Actions** › **Schnee-Check** auf **Enable workflow** tippen.
 - Alles ist gratis: GitHub Actions, GitHub Pages, ntfy und Open-Meteo.

@@ -50,6 +50,14 @@ export function maxNeuschnee(zeiten, werte, jetzt) {
   return best;
 }
 
+// "alarm" ab schwelle_cm, "lohnenswert" ab lohnenswert_cm, sonst null.
+// Fehlt lohnenswert_cm in skigebiete.json, gibt es nur Alarme.
+export function stufe(cm, config) {
+  if (cm >= config.schwelle_cm) return "alarm";
+  if (cm >= (config.lohnenswert_cm ?? config.schwelle_cm)) return "lohnenswert";
+  return null;
+}
+
 const zeitFormat = new Intl.DateTimeFormat("de-CH", {
   timeZone: ZEITZONE, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
 });
